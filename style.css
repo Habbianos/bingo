@@ -1,0 +1,19 @@
+html {
+	font-family: sans-serif;
+}
+legend {
+  background-color: #000;
+  color: #fff;
+  padding: 3px 6px;
+}
+canvas {
+	border: 1px solid #000;
+}
+#downloadLinks a {
+	display: block;
+	margin: 5px;
+}
+
+label:has(#preview:not(:checked)) ~ #downloadLinks canvas {
+	display: none;
+}

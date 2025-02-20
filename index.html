@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-br" >
+<head>
+  <meta charset="UTF-8">
+  <title>Bingo</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<h1>Gerador de Cartelas de Bingo</h1>
+<fieldset>
+	<legend>Configurações da Cartela</legend>
+	<label>Imagem de fundo: <input type="file" id="bgImage" accept="image/*"></label>
+    <br>
+	<!-- Dimensões da imagem -->
+	<div>
+		<label>Largura da imagem: <output id="bgWidth">0</output> px</label>
+		<br>
+		<label>Altura da imagem: <output id="bgHeight">0</output> px</label>
+	</div>
+
+	<hr>
+
+	<!-- Configuração da grade -->
+	<div>
+		<label>Largura da grade (0-<span id="maxGridWidth">0</span>):
+			<input type="number" id="gridWidth" min="0" step="1" value="0"> px
+		</label>
+		<br>
+		<label>Altura da grade (0-<span id="maxGridHeight">0</span>):
+			<input type="number" id="gridHeight" min="0" step="1" value="0"> px
+		</label>
+	</div>
+
+	<hr>
+	<!-- Tamanho da célula -->
+	<div>
+		<label>Largura célula: <output id="cellWidth">0</output> px</label>
+		<br>
+		<label>Altura célula: <output id="cellHeight">0</output> px</label>
+	</div>
+
+	<hr>
+	<!-- Offset da grade -->
+	<div>
+		<label>Deslocamento X (0-<span id="maxOffsetX">0</span>):
+			<input type="number" id="offsetX" min="0" step="1" value="0"> px
+		</label>
+		<br>
+		<label>Deslocamento Y (0-<span id="maxOffsetY">0</span>):
+			<input type="number" id="offsetY" min="0" step="1" value="0"> px
+		</label>
+	</div>
+	<hr>
+	<label>Família da fonte:
+		<select id="fontFamily">
+			<optgroup label="Padrão">
+				<option value="Arial">Arial</option>
+				<option value="Verdana">Verdana</option>
+				<option value="Helvetica">Helvetica</option>
+				<option value="Times New Roman">Times New Roman</option>
+				<option value="Courier New">Courier New</option>
+				<option value="Georgia">Georgia</option>
+				<option value="Palatino">Palatino</option>
+				<option value="Garamond">Garamond</option>
+				<option value="Comic Sans MS">Comic Sans MS</option>
+				<option value="Impact">Impact</option>
+			</optgroup>
+			<optgroup label="Carregadas" id="loadedFontsOptgroup">
+				<!-- As fontes carregadas serão inseridas aqui -->
+			</optgroup>
+		</select>
+	</label>
+	<br>
+	<label>Tamanho da fonte:
+		<input type="number" id="fontSize" min="1" value="40"> px
+	</label>
+	<br>
+	<label>Estilo da fonte:
+		<select id="fontStyle" multiple>
+			<option value="normal">Normal</option>
+			<option value="italic">Itálico</option>
+			<option value="bold">Negrito</option>
+			<option value="bolder">Mais Negrito</option>
+			<option value="lighter">Menos Negrito</option>
+		</select>
+	</label>
+	<hr>
+    <label>Número máximo (múltiplo de 5, mínimo 25):</label>
+    <input type="number" id="maxNumber" min="25" step="5" value="60">
+    <br>
+    <label>Número de cartelas:</label>
+    <input type="number" id="numCards" min="1" value="1">
+	<hr>
+	<button onclick="generateCards()">Gerar Cartelas</button>
+</fieldset>
+<fieldset>
+	<legend>Resultado</legend>
+    <button onclick="downloadAll(this)">Baixar Todas</button>
+    <br>
+	<label><input type="checkbox" id="preview"> Pre-visualizar</label>
+    <div id="downloadLinks"></div>
+</fieldset>
+<!-- partial -->
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'></script><script  src="./script.js"></script>
+
+</body>
+</html>
