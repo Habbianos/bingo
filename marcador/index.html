@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Marcador de Cartelas de Bingo</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        #controls {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+
+        #colorPicker {
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            border: none;
+            cursor: pointer;
+        }
+
+        #canvasContainer {
+            overflow: auto;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #mainCanvas {
+            display: block;
+        }
+
+        .brush-control {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        #brushSize {
+            width: 80px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <input type="file" id="fileInput" multiple accept="image/*" hidden>
+        <button onclick="document.getElementById('fileInput').click()">SELECIONAR CARTELA</button>
+        <button onclick="downloadCanvas()">BAIXAR RESULTADO</button>
+        <button onclick="undo()">DESFAZER</button>
+        <input type="color" id="colorPicker" value="#ff0000">
+        <div class="brush-control">
+            <input type="range" id="brushSize" min="5" max="50" value="20">
+            <span id="brushSizeValue">20</span>
+        </div>
+    </div>
+
+    <div id="canvasContainer">
+        <canvas id="mainCanvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        const colorPicker = document.getElementById('colorPicker');
+        const fileInput = document.getElementById('fileInput');
+        const brushSize = document.getElementById('brushSize');
+        const brushSizeValue = document.getElementById('brushSizeValue');
+
+        let uploadedImages = [];
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let brushRadius = parseInt(brushSize.value);
+        let undoStack = [];
+
+        // Configurações iniciais
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Event Listeners
+        fileInput.addEventListener('change', async (e) => {
+            undoStack = []
+            const files = Array.from(e.target.files);
+            uploadedImages = [];
+            
+            for (const file of files) {
+                const img = await loadImage(file);
+                uploadedImages.push(img);
+            }
+            
+            drawImages();
+        });
+
+        brushSize.addEventListener('input', (e) => {
+            brushRadius = parseInt(e.target.value);
+            brushSizeValue.textContent = e.target.value;
+        });
+
+        // Funções de desenho
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        function loadImage(file) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.src = URL.createObjectURL(file);
+            });
+        }
+
+        function drawImages() {
+            if (uploadedImages.length === 0) return;
+
+            const containerHeight = window.innerHeight;
+            let totalWidth = 0;
+
+            uploadedImages.forEach(img => {
+                const aspectRatio = img.width / img.height;
+                totalWidth += aspectRatio * containerHeight;
+            });
+
+            canvas.width = totalWidth;
+            canvas.height = containerHeight;
+            canvas.style.width = `${totalWidth}px`;
+            canvas.style.height = `${containerHeight}px`;
+
+            let xPos = 0;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            uploadedImages.forEach(img => {
+                const aspectRatio = img.width / img.height;
+                const imgWidth = aspectRatio * containerHeight;
+                ctx.drawImage(img, xPos, 0, imgWidth, containerHeight);
+                xPos += imgWidth;
+            });
+
+            // Salva estado inicial no undoStack
+            saveState();
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            const pos = getCanvasPos(e);
+            [lastX, lastY] = [pos.x, pos.y];
+            drawCircle(pos.x, pos.y);
+            saveState(); // Salva estado antes de começar a desenhar
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const pos = getCanvasPos(e);
+            
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.strokeStyle = colorPicker.value;
+            ctx.lineWidth = brushRadius * 2;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            
+            [lastX, lastY] = [pos.x, pos.y];
+        }
+
+        function drawCircle(x, y) {
+            stopDrawing() // Evita efeito de arrastar
+            ctx.beginPath();
+            ctx.arc(x, y, brushRadius, 0, Math.PI * 2);
+            ctx.fillStyle = colorPicker.value;
+            ctx.globalAlpha = 0.5;
+            ctx.fill();
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            // saveState(); // Salva estado após terminar de desenhar
+        }
+
+        function getCanvasPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+
+        function downloadCanvas() {
+            const link = document.createElement('a');
+            link.download = 'bingo-board.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        // Save the current canvas state
+        function saveState() {
+            // Limit the history to 20 states
+            if (undoStack.length > 20) {
+                undoStack.shift();
+            }
+            // Get the current canvas image as a data URL
+            const dataURL = canvas.toDataURL();
+            undoStack.push(dataURL);
+            // Save the updated stack to session storage
+            sessionStorage.setItem("undoStack", JSON.stringify(undoStack));
+        }
+
+        // Undo the last change by restoring the previous state
+        function undo() {
+            if (undoStack.length > 1) {
+                // Remove the current state
+                undoStack.pop();
+                // Update session storage with the new stack
+                sessionStorage.setItem("undoStack", JSON.stringify(undoStack));
+                // Get the previous state (data URL)
+                const previousDataURL = undoStack[undoStack.length - 1];
+                // Create a new image and draw it on the canvas once loaded
+                const img = new Image();
+                img.onload = function() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.globalAlpha = 1;
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = previousDataURL;
+            }
+        }
+
+        // On page load, check for an existing undo stack and restore the last state
+        window.onload = function() {
+            const storedStack = sessionStorage.getItem("undoStack");
+            if (storedStack) {
+                undoStack = JSON.parse(storedStack);
+                // Optionally, restore the last saved canvas state
+                const lastState = undoStack[undoStack.length - 1];
+                if (lastState) {
+                    const img = new Image();
+                    img.onload = function() {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.globalAlpha = 1;
+                        ctx.drawImage(img, 0, 0);
+                    };
+                    img.src = lastState;
+                }
+            }
+        };
+    </script>
+</body>
+</html>
